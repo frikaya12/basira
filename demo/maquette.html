@@ -1,0 +1,682 @@
+<title>Basira Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : outil clinique à onglets (pharmacie → ophtalmologue → patient → suivi), une colonne sur mobile.
+   Couleurs reprises des slides Basira : bleu nuit + orange « rétine ». */
+:root {
+  --bg: #F3F1EC;
+  --surface: #FFFDF9;
+  --surface-2: #EAE6DE;
+  --ink: #0F2A3D;
+  --ink-soft: #4A6070;
+  --line: #DDD7CB;
+  --accent: #B5541B;
+  --accent-fill: #E8833A;
+  --on-accent: #0F2A3D;
+  --navy: #0F2A3D;
+  --on-navy: #EEF2F4;
+  --ok: #2E7D5B;
+  --ok-bg: #E2F1E9;
+  --warn: #9A6412;
+  --warn-bg: #F8EDD6;
+  --crit: #B23A3A;
+  --crit-bg: #F7E1DE;
+  --info: #2D5F8A;
+  --info-bg: #E1EBF4;
+  --font-display: 'Montserrat', 'Trebuchet MS', Arial, sans-serif;
+  --font-body: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1D2A; --surface: #12293A; --surface-2: #1A3549; --ink: #EEF2F4; --ink-soft: #A9BCC8; --line: #26445A;
+    --accent: #F2A15F; --accent-fill: #E8833A; --on-accent: #0F2A3D; --navy: #071521; --on-navy: #EEF2F4;
+    --ok: #74C9A0; --ok-bg: #173A2C; --warn: #E9B962; --warn-bg: #3A2E14; --crit: #F09086; --crit-bg: #3E1E1C; --info: #8EB8E0; --info-bg: #1B3248;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1D2A; --surface: #12293A; --surface-2: #1A3549; --ink: #EEF2F4; --ink-soft: #A9BCC8; --line: #26445A;
+  --accent: #F2A15F; --accent-fill: #E8833A; --on-accent: #0F2A3D; --navy: #071521; --on-navy: #EEF2F4;
+  --ok: #74C9A0; --ok-bg: #173A2C; --warn: #E9B962; --warn-bg: #3A2E14; --crit: #F09086; --crit-bg: #3E1E1C; --info: #8EB8E0; --info-bg: #1B3248;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { background: var(--navy); color: var(--on-navy); }
+header.top .wrap { padding-block: 22px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.eye { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--accent-fill); display: grid; place-items: center; flex: none; }
+.eye::after { content: ""; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-fill); box-shadow: inset 0 0 0 6px var(--accent-fill), inset 0 0 0 20px var(--navy); }
+.brand h1 { font-family: var(--font-display); font-weight: 800; font-size: 26px; margin: 0; letter-spacing: 0.2px; }
+.brand p { margin: 0; font-size: 14px; opacity: 0.8; }
+.version { font-family: var(--font-mono); font-size: 13px; border: 1px solid rgba(238,242,244,0.35); padding: 4px 10px; border-radius: 999px; }
+.notice { background: var(--warn-bg); color: var(--ink); border-bottom: 1px solid var(--line); }
+.notice .wrap { padding-block: 10px; font-size: 14px; }
+.notice b { color: var(--warn); }
+nav.tabs { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+nav.tabs .wrap { display: flex; gap: 4px; overflow-x: auto; }
+.tab { appearance: none; border: 0; background: none; color: var(--ink-soft); font: 700 15px var(--font-body); padding: 14px 14px 12px; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; display: flex; gap: 8px; align-items: center; }
+.tab .n { font-family: var(--font-mono); font-size: 12px; font-weight: 500; border: 1px solid var(--line); border-radius: 999px; padding: 0 7px; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent-fill); }
+.tab:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--accent-fill); outline-offset: 2px; }
+main .wrap { padding-block: 28px 56px; }
+h2 { font-family: var(--font-display); font-weight: 800; font-size: 24px; margin: 0 0 4px; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 700; font-size: 17px; margin: 0; }
+.lead { color: var(--ink-soft); margin: 0 0 22px; max-width: 70ch; }
+.label { font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 20px; align-items: start; }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-weight: 700; font-size: 14px; }
+.field .hint { font-size: 13px; color: var(--ink-soft); }
+input[type="text"], input[type="number"], input[type="tel"], select, textarea { font: 16px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+textarea { min-height: 72px; resize: vertical; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+.check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent-fill); flex: none; }
+.eyes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.eyecard { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; background: var(--bg); }
+.eyecard header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 8px; }
+.eyecard header .code { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); }
+.fundus { width: 100%; aspect-ratio: 1 / 1; max-width: 100%; border-radius: 12px; background: #050505; display: grid; place-items: center; overflow: hidden; color: #9aa7b0; font-size: 13px; text-align: center; padding: 8px; }
+.fundus img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.demo-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.btn { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 700 14px var(--font-body); padding: 8px 12px; border-radius: 10px; cursor: pointer; }
+.btn:hover { border-color: var(--accent-fill); }
+.btn.primary { background: var(--accent-fill); color: var(--on-accent); border-color: var(--accent-fill); font-size: 16px; padding: 12px 18px; }
+.btn.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.small { font-size: 13px; padding: 6px 10px; }
+.file-btn { position: relative; overflow: hidden; display: inline-flex; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.qc { display: grid; gap: 6px; font-size: 13px; }
+.qc .row { display: flex; justify-content: space-between; gap: 8px; }
+.qc .row span:last-child { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.ok { color: var(--ok); background: var(--ok-bg); }
+.pill.warn { color: var(--warn); background: var(--warn-bg); }
+.pill.crit { color: var(--crit); background: var(--crit-bg); }
+.pill.info { color: var(--info); background: var(--info-bg); }
+.pill.mute { color: var(--ink-soft); background: var(--surface-2); }
+.msg { font-size: 14px; padding: 10px 12px; border-radius: 10px; }
+.msg.warn { background: var(--warn-bg); color: var(--ink); }
+.msg.ok { background: var(--ok-bg); color: var(--ink); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.triage { border: 2px solid var(--accent-fill); }
+.triage-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; }
+.sim { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--warn); background: var(--warn-bg); padding: 3px 8px; border-radius: 6px; }
+.queue { display: flex; flex-direction: column; gap: 8px; }
+.qitem { appearance: none; text-align: left; width: 100%; background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; color: var(--ink); font: inherit; }
+.qitem[data-sev="crit"] { border-left-color: var(--crit); }
+.qitem[data-sev="info"] { border-left-color: var(--info); }
+.qitem[data-sev="ok"] { border-left-color: var(--ok); }
+.qitem[aria-current="true"] { outline: 2px solid var(--accent-fill); outline-offset: -1px; }
+.qitem.done { opacity: 0.62; }
+.qid { font-family: var(--font-mono); font-weight: 500; font-size: 14px; }
+.qmeta { font-size: 13px; color: var(--ink-soft); grid-column: 1 / -1; }
+.ex { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-soft); border: 1px dashed var(--line); padding: 1px 6px; border-radius: 6px; margin-left: 6px; }
+.decide { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.decide .btn { text-align: left; padding: 12px; display: flex; flex-direction: column; gap: 2px; }
+.decide .btn small { font-weight: 400; color: var(--ink-soft); font-size: 13px; }
+.decide .btn[data-d="rdv"] { border-left: 5px solid var(--crit); }
+.decide .btn[data-d="normal"] { border-left: 5px solid var(--ok); }
+.decide .btn[data-d="refaire"] { border-left: 5px solid var(--warn); }
+dl.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: 14px; }
+dl.facts dt { color: var(--ink-soft); }
+dl.facts dd { margin: 0; font-weight: 700; }
+.phone { max-width: 400px; width: 100%; background: var(--navy); border-radius: 28px; padding: 16px 12px 22px; margin-inline: auto; }
+.phone .bar { color: var(--on-navy); font-size: 13px; text-align: center; opacity: 0.8; padding-bottom: 10px; font-family: var(--font-mono); }
+.sms-list { background: var(--surface); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; }
+.sms { background: var(--surface-2); border-radius: 14px 14px 14px 4px; padding: 10px 12px; font-size: 14px; }
+.sms .from { font-weight: 700; font-size: 12px; color: var(--accent); margin-bottom: 2px; display: flex; justify-content: space-between; gap: 8px; }
+.sms .from span { font-family: var(--font-mono); color: var(--ink-soft); font-weight: 400; }
+.sms .seen { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.tile .v { font-family: var(--font-display); font-weight: 800; font-size: 34px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile .k { font-size: 14px; color: var(--ink-soft); }
+.meter { height: 10px; background: var(--surface-2); border-radius: 999px; position: relative; overflow: visible; margin-top: 10px; }
+.meter i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--accent-fill); }
+.meter b { position: absolute; top: -5px; width: 2px; height: 20px; background: var(--ink); }
+.meter-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-soft); margin-top: 8px; gap: 8px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-soft); }
+td:first-child { font-weight: 700; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+.flow span.node { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-weight: 700; }
+.flow span.arrow { color: var(--accent); font-weight: 800; }
+.empty { color: var(--ink-soft); font-size: 14px; text-align: center; padding: 24px 8px; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--navy); color: var(--on-navy); padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 14px; z-index: 20; max-width: calc(100% - 32px); }
+footer.foot .wrap { padding-block: 0 40px; font-size: 13px; color: var(--ink-soft); }
+@media (max-width: 860px) {
+  .grid-2 { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .fields, .eyes { grid-template-columns: minmax(0, 1fr); }
+  .decide { grid-template-columns: minmax(0, 1fr); }
+  .panel { padding: 16px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tab, .btn, .qitem { transition: border-color 0.15s, background 0.15s; }
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="eye" aria-hidden="true"></div>
+      <div>
+        <h1>Basira</h1>
+        <p>Dépistage de la rétinopathie diabétique, là où vont les diabétiques</p>
+      </div>
+    </div>
+    <span class="version">prototype v0.1 · 27/10/2026</span>
+  </div>
+</header>
+<div class="notice">
+  <div class="wrap"><b>Prototype de démonstration.</b> Patients fictifs, aucune donnée réelle. Le contrôle qualité des photos est calculé pour de vrai ; le tri par l’IA et l’envoi des SMS sont simulés.</div>
+</div>
+<nav class="tabs" aria-label="Étapes du parcours">
+  <div class="wrap" role="tablist">
+    <button class="tab" role="tab" id="tab-pharmacie" aria-controls="view-pharmacie" aria-selected="true" data-view="pharmacie">1 · Pharmacie</button>
+    <button class="tab" role="tab" id="tab-ophtalmo" aria-controls="view-ophtalmo" aria-selected="false" data-view="ophtalmo">2 · Ophtalmologue <span class="n" id="count-ophtalmo">0</span></button>
+    <button class="tab" role="tab" id="tab-patient" aria-controls="view-patient" aria-selected="false" data-view="patient">3 · Patient <span class="n" id="count-patient">0</span></button>
+    <button class="tab" role="tab" id="tab-suivi" aria-controls="view-suivi" aria-selected="false" data-view="suivi">4 · Suivi et architecture</button>
+  </div>
+</nav>
+
+<main>
+  <!-- 1. PHARMACIE -->
+  <section class="wrap" id="view-pharmacie" role="tabpanel" aria-labelledby="tab-pharmacie">
+    <span class="label">Écran de la pharmacie</span>
+    <h2>Nouveau dépistage</h2>
+    <p class="lead">Le pharmacien inscrit le patient, prend une photo de chaque œil, et l’application vérifie que les photos sont exploitables avant de les envoyer.</p>
+    <div class="grid-2">
+      <form class="panel stack" id="form" novalidate>
+        <h3>Le patient</h3>
+        <div class="fields">
+          <div class="field"><label for="f-initiales">Initiales</label><input type="text" id="f-initiales" maxlength="4" autocomplete="off" value="M.B."></div>
+          <div class="field"><label for="f-age">Âge</label><input type="number" id="f-age" min="10" max="110" value="61"></div>
+          <div class="field"><label for="f-duree">Diabète depuis (années)</label><input type="number" id="f-duree" min="0" max="80" value="9"></div>
+          <div class="field"><label for="f-type">Type de diabète</label><select id="f-type"><option value="2" selected>Type 2</option><option value="1">Type 1</option></select></div>
+          <div class="field full"><label for="f-tel">Téléphone pour le résultat</label><input type="tel" id="f-tel" value="06 00 00 00 00" autocomplete="off"><span class="hint">Numéro fictif dans cette démo.</span></div>
+        </div>
+        <label class="check" for="f-consent"><input type="checkbox" id="f-consent"> <span>Le patient accepte que ses photos soient analysées par une IA puis lues à distance par un ophtalmologue partenaire.</span></label>
+        <p class="hint" style="margin:0;color:var(--ink-soft);font-size:13px">Pharmacie : Pharmacie de démonstration, Casablanca (fictive).</p>
+      </form>
+
+      <div class="stack">
+        <div class="panel stack">
+          <h3>Les photos du fond d’œil</h3>
+          <p style="margin:0;font-size:14px;color:var(--ink-soft)">Ajoutez une vraie photo de rétine, ou utilisez une image de démonstration générée par l’application.</p>
+          <div class="eyes" id="eyes"></div>
+        </div>
+        <div class="msg warn" id="send-warning" hidden></div>
+        <div class="actions">
+          <button class="btn primary" id="send" type="button">Envoyer à Basira</button>
+          <span class="hint" id="send-hint" style="font-size:13px;color:var(--ink-soft)"></span>
+        </div>
+        <div class="panel stack triage" id="triage" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. OPHTALMO -->
+  <section class="wrap" id="view-ophtalmo" role="tabpanel" aria-labelledby="tab-ophtalmo" hidden>
+    <span class="label">Écran de l’ophtalmologue partenaire</span>
+    <h2>Examens à lire</h2>
+    <p class="lead">Les cas jugés suspects par l’IA passent en premier. L’ophtalmologue regarde les photos et décide : c’est lui qui pose le diagnostic, pas l’IA.</p>
+    <div class="grid-2">
+      <div class="queue" id="queue"></div>
+      <div class="panel stack" id="detail"></div>
+    </div>
+  </section>
+
+  <!-- 3. PATIENT -->
+  <section class="wrap" id="view-patient" role="tabpanel" aria-labelledby="tab-patient" hidden>
+    <span class="label">Ce que reçoit le patient</span>
+    <h2>Résultats et rendez-vous</h2>
+    <p class="lead">Chaque décision de l’ophtalmologue produit un message pour le patient. Dans cette démo, les messages sont affichés ici et ne sont pas envoyés.</p>
+    <div class="phone">
+      <div class="bar">Messages · simulation</div>
+      <div class="sms-list" id="sms"></div>
+    </div>
+  </section>
+
+  <!-- 4. SUIVI -->
+  <section class="wrap" id="view-suivi" role="tabpanel" aria-labelledby="tab-suivi" hidden>
+    <span class="label">Pilotage</span>
+    <h2>Suivi des patients</h2>
+    <p class="lead">L’indicateur qui compte : la part des patients à risque qui voient vraiment l’ophtalmologue. Après le dépistage de Fès (2012-2013), c’était 69 %.</p>
+    <div class="tiles" id="tiles"></div>
+    <div class="panel" style="margin-top:12px">
+      <h3>Patients à risque qui ont vu l’ophtalmologue</h3>
+      <div class="meter" aria-hidden="true"><i id="meter-fill" style="width:0%"></i><b style="left:69%"></b></div>
+      <div class="meter-legend"><span id="meter-text">0 %</span><span>Repère : 69 % à Fès, 2012-2013</span></div>
+    </div>
+
+    <h2 style="margin-top:40px">Architecture</h2>
+    <p class="lead">Ce que fait déjà ce prototype, ce qui est simulé, et ce qui reste à construire.</p>
+    <div class="panel stack">
+      <div class="flow" aria-label="Chemin des données">
+        <span class="node">Tablette pharmacie</span><span class="arrow">→</span>
+        <span class="node">Serveur Basira</span><span class="arrow">→</span>
+        <span class="node">IA de tri</span><span class="arrow">→</span>
+        <span class="node">Ophtalmologue</span><span class="arrow">→</span>
+        <span class="node">SMS / WhatsApp patient</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Brique</th><th>État</th><th>Dans ce prototype</th><th>Prochaine étape</th></tr></thead>
+          <tbody>
+            <tr><td>Inscription du patient</td><td><span class="pill ok">Fait</span></td><td>Formulaire et consentement.</td><td>Version tablette, en français et en darija.</td></tr>
+            <tr><td>Contrôle qualité des photos</td><td><span class="pill ok">Fait</span></td><td>Calcul réel de la netteté et de la luminosité de chaque photo, dans le navigateur.</td><td>Calibrer les seuils sur de vraies photos de rétinographe portable.</td></tr>
+            <tr><td>Tri par l’IA</td><td><span class="pill warn">Simulé</span></td><td>Le résultat dépend de l’image de démonstration choisie. Une photo importée est envoyée à l’ophtalmologue sans avis de l’IA.</td><td>Entraîner un modèle de démonstration sur des bases publiques (APTOS, EyePACS, Messidor), puis intégrer une IA certifiée pour les vrais patients.</td></tr>
+            <tr><td>Écran de l’ophtalmologue</td><td><span class="pill ok">Fait</span></td><td>File priorisée et décision en un clic.</td><td>Compte rendu signé, cadre de télé-expertise (décret 2-18-378).</td></tr>
+            <tr><td>Messages au patient</td><td><span class="pill warn">Simulé</span></td><td>Texte généré automatiquement, affiché à l’écran.</td><td>Brancher un service SMS ou WhatsApp, et le rappel annuel.</td></tr>
+            <tr><td>Serveur et données de santé</td><td><span class="pill mute">À faire</span></td><td>Tout reste dans le navigateur, rien n’est enregistré.</td><td>API (FastAPI), stockage chiffré, déclaration à la CNDP (loi 09-08).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="actions" style="margin-top:20px">
+      <button class="btn" id="reset" type="button">Remettre la démo à zéro</button>
+      <span class="hint" id="reset-confirm" hidden style="font-size:14px">Les dépistages ajoutés seront effacés. <button class="btn small" id="reset-yes" type="button">Confirmer</button> <button class="btn small" id="reset-no" type="button">Annuler</button></span>
+    </div>
+  </section>
+</main>
+<footer class="foot"><div class="wrap">Basira · projet Spark by ECC · prototype de démonstration, ne pas utiliser pour un vrai diagnostic.</div></footer>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- Outils ---------- */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function fmtDate(d) { return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  function fmtMonth(d) { return d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }); }
+  var toastTimer;
+  function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.hidden = true; }, 2600); }
+
+  /* ---------- Images de démonstration (fond d'œil synthétique) ---------- */
+  function drawVessel(ctx, rng, x, y, angle, width, length, depth, color) {
+    ctx.strokeStyle = color; ctx.lineCap = 'round';
+    var steps = 14, seg = length / steps;
+    for (var i = 0; i < steps; i++) {
+      angle += (rng() - 0.5) * 0.35;
+      var nx = x + Math.cos(angle) * seg, ny = y + Math.sin(angle) * seg;
+      ctx.lineWidth = Math.max(0.8, width * (1 - i / steps * 0.6));
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke();
+      x = nx; y = ny;
+      if (depth > 0 && i > 3 && rng() < 0.16) {
+        drawVessel(ctx, rng, x, y, angle + (rng() < 0.5 ? -1 : 1) * (0.5 + rng() * 0.5), width * 0.6, length * 0.55, depth - 1, color);
+      }
+    }
+  }
+  function makeFundus(variant, side, seed) {
+    var S = 512, c = document.createElement('canvas'); c.width = S; c.height = S;
+    var ctx = c.getContext('2d'), rng = mulberry32(seed);
+    ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, S, S);
+    ctx.save(); ctx.beginPath(); ctx.arc(256, 256, 240, 0, Math.PI * 2); ctx.clip();
+    var g = ctx.createRadialGradient(256, 250, 20, 256, 256, 250);
+    g.addColorStop(0, '#E58A45'); g.addColorStop(0.6, '#C4521F'); g.addColorStop(1, '#6E2A12');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+    var dx = 256 + side * 110, dy = 248;
+    var mac = ctx.createRadialGradient(256 - side * 30, 262, 4, 256 - side * 30, 262, 46);
+    mac.addColorStop(0, 'rgba(110,34,12,0.75)'); mac.addColorStop(1, 'rgba(110,34,12,0)');
+    ctx.fillStyle = mac; ctx.fillRect(0, 0, S, S);
+    for (var v = 0; v < 9; v++) {
+      var a = (side > 0 ? Math.PI : 0) + (v / 8 - 0.5) * 3.4 + (rng() - 0.5) * 0.2;
+      drawVessel(ctx, rng, dx, dy, a, v % 2 ? 6 : 4.5, 210 + rng() * 60, 2, v % 2 ? '#5E140B' : '#7A1E10');
+    }
+    var od = ctx.createRadialGradient(dx, dy, 4, dx, dy, 36);
+    od.addColorStop(0, '#FFF0C8'); od.addColorStop(0.7, '#F4BE78'); od.addColorStop(1, 'rgba(240,170,100,0)');
+    ctx.fillStyle = od; ctx.beginPath(); ctx.arc(dx, dy, 36, 0, Math.PI * 2); ctx.fill();
+    if (variant === 'lesions') {
+      for (var i = 0; i < 26; i++) {
+        var r = 40 + rng() * 120, t = rng() * Math.PI * 2;
+        ctx.fillStyle = '#6B0C08'; ctx.beginPath(); ctx.arc(256 - side * 30 + Math.cos(t) * r, 262 + Math.sin(t) * r, 2 + rng() * 4, 0, Math.PI * 2); ctx.fill();
+      }
+      for (var j = 0; j < 14; j++) {
+        var r2 = 30 + rng() * 80, t2 = rng() * Math.PI * 2;
+        ctx.fillStyle = '#F7E08A'; ctx.beginPath(); ctx.arc(256 - side * 30 + Math.cos(t2) * r2, 262 + Math.sin(t2) * r2, 3 + rng() * 4, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.restore();
+    if (variant === 'floue') {
+      var small = document.createElement('canvas'); small.width = 36; small.height = 36;
+      var sctx = small.getContext('2d'); sctx.imageSmoothingEnabled = true; sctx.drawImage(c, 0, 0, 36, 36);
+      ctx.imageSmoothingEnabled = true; ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, S, S); ctx.drawImage(small, 0, 0, S, S);
+      ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, S, S);
+    }
+    return c.toDataURL('image/jpeg', 0.9);
+  }
+
+  /* ---------- Contrôle qualité (calcul réel) ---------- */
+  var QC = { sharpMin: 18, brightMin: 45, brightMax: 215, fieldMin: 0.2 };
+  function analyse(img) {
+    var N = 256, c = document.createElement('canvas'); c.width = N; c.height = N;
+    var ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, N, N);
+    var d = ctx.getImageData(0, 0, N, N).data, L = new Float32Array(N * N), area = 0, sx = 0, sy = 0;
+    for (var p = 0, k = 0; p < d.length; p += 4, k++) {
+      var lum = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2]; L[k] = lum;
+      if (lum > 14) { area++; sx += k % N; sy += (k / N) | 0; }
+    }
+    var fieldFrac = area / (N * N);
+    if (area < 50) return { ok: false, brightness: 0, sharpness: 0, fieldFrac: fieldFrac, reasons: ['Image trop sombre ou vide'] };
+    var cx = sx / area, cy = sy / area, R = Math.sqrt(area / Math.PI) * 0.8, R2 = R * R;
+    var sum = 0, n = 0, lapSum = 0, lapSq = 0, m = 0;
+    for (var y = 1; y < N - 1; y++) {
+      for (var x = 1; x < N - 1; x++) {
+        var ddx = x - cx, ddy = y - cy; if (ddx * ddx + ddy * ddy > R2) continue;
+        var i2 = y * N + x; sum += L[i2]; n++;
+        var lap = L[i2 - 1] + L[i2 + 1] + L[i2 - N] + L[i2 + N] - 4 * L[i2];
+        lapSum += lap; lapSq += lap * lap; m++;
+      }
+    }
+    var brightness = n ? sum / n : 0, mean = m ? lapSum / m : 0, sharpness = m ? Math.sqrt(Math.max(0, lapSq / m - mean * mean)) : 0;
+    var reasons = [];
+    if (fieldFrac < QC.fieldMin) reasons.push('Rétine trop petite dans l’image');
+    if (brightness < QC.brightMin) reasons.push('Photo trop sombre');
+    if (brightness > QC.brightMax) reasons.push('Photo trop claire');
+    if (sharpness < QC.sharpMin) reasons.push('Photo floue');
+    return { ok: reasons.length === 0, brightness: brightness, sharpness: sharpness, fieldFrac: fieldFrac, reasons: reasons };
+  }
+  function loadImage(src) { return new Promise(function (res, rej) { var im = new Image(); im.onload = function () { res(im); }; im.onerror = rej; im.src = src; }); }
+
+  /* ---------- Données ---------- */
+  var TODAY = new Date();
+  var state = { cases: [], counter: 0, selected: null, eyes: { OD: null, OG: null } };
+  var EYES = [{ key: 'OD', name: 'Œil droit', side: 1 }, { key: 'OG', name: 'Œil gauche', side: -1 }];
+
+  function aiFor(eye) {
+    if (eye.source === 'lesions') return 'suspect';
+    if (eye.source === 'saine') return 'normal';
+    return 'inconnu';
+  }
+  function caseTriage(c) {
+    var a = [aiFor(c.eyes.OD), aiFor(c.eyes.OG)];
+    if (a.indexOf('suspect') >= 0) return 'suspect';
+    if (a.indexOf('inconnu') >= 0) return 'a_lire';
+    return 'normal';
+  }
+  var TRIAGE = {
+    suspect: { label: 'Suspect', cls: 'crit', sev: 'crit', text: 'Signes possibles de rétinopathie. Lecture prioritaire par l’ophtalmologue.' },
+    a_lire: { label: 'À lire', cls: 'info', sev: 'info', text: 'Pas d’avis de l’IA sur une photo importée. L’ophtalmologue lit l’examen.' },
+    normal: { label: 'Pas de signe détecté', cls: 'ok', sev: 'ok', text: 'Aucun signe détecté. L’ophtalmologue confirme avant le résultat.' }
+  };
+  var DECISION = {
+    rdv: { label: 'Rétinopathie · rendez-vous prioritaire', cls: 'crit' },
+    normal: { label: 'Pas de rétinopathie · contrôle dans 12 mois', cls: 'ok' },
+    refaire: { label: 'Photo à refaire', cls: 'warn' }
+  };
+
+  function nextId() { state.counter++; return 'BAS-' + String(state.counter).padStart(4, '0'); }
+  function newCase(p, eyes, example) {
+    var c = { id: nextId(), initiales: p.initiales, age: p.age, duree: p.duree, type: p.type, tel: p.tel, eyes: eyes, created: new Date(TODAY), example: !!example, decision: null, decidedAt: null, note: '', rdv: null, seen: false };
+    c.triage = caseTriage(c);
+    return c;
+  }
+  function decide(c, d, note) {
+    c.decision = d; c.decidedAt = new Date(TODAY); c.note = note || '';
+    if (d === 'rdv') { c.rdv = addDays(TODAY, 7); }
+  }
+  function smsText(c) {
+    if (c.decision === 'rdv') return 'Basira : bonjour, votre examen des yeux du ' + fmtDate(c.created) + ' montre des signes à faire vérifier par un ophtalmologue. Rendez-vous réservé le ' + fmtDate(c.rdv) + ' à 10h30 au cabinet d’ophtalmologie partenaire. Répondez OUI pour confirmer.';
+    if (c.decision === 'normal') return 'Basira : bonjour, votre examen des yeux du ' + fmtDate(c.created) + ' est normal. Prochain contrôle conseillé : ' + fmtMonth(addDays(c.created, 365)) + '. Nous vous enverrons un rappel.';
+    return 'Basira : bonjour, une de vos photos des yeux du ' + fmtDate(c.created) + ' n’est pas assez nette. Repassez à votre pharmacie quand vous voulez pour la refaire, c’est gratuit.';
+  }
+
+  function seed() {
+    state.cases = []; state.counter = 0; state.selected = null;
+    function eye(source, side, s) { return { source: source, src: makeFundus(source, side, s), qc: null }; }
+    var a = newCase({ initiales: 'A.E.', age: 58, duree: 12, type: '2', tel: '06 00 00 00 01' }, { OD: eye('lesions', 1, 11), OG: eye('saine', -1, 12) }, true);
+    var b = newCase({ initiales: 'F.Z.', age: 46, duree: 4, type: '2', tel: '06 00 00 00 02' }, { OD: eye('saine', 1, 21), OG: eye('saine', -1, 22) }, true);
+    var c = newCase({ initiales: 'H.K.', age: 63, duree: 15, type: '2', tel: '06 00 00 00 03' }, { OD: eye('lesions', 1, 31), OG: eye('lesions', -1, 32) }, true);
+    c.created = addDays(TODAY, -9); decide(c, 'rdv', 'Hémorragies et exsudats aux deux yeux.'); c.decidedAt = addDays(TODAY, -8); c.rdv = addDays(TODAY, -2); c.seen = true;
+    state.cases.push(a, b, c);
+    state.selected = a.id;
+    state.eyes = { OD: null, OG: null };
+  }
+
+  /* ---------- Vue pharmacie ---------- */
+  function renderEyes() {
+    var host = $('eyes'); host.innerHTML = '';
+    EYES.forEach(function (E) {
+      var e = state.eyes[E.key];
+      var card = document.createElement('div'); card.className = 'eyecard';
+      var qcHtml = '';
+      if (e && e.qc) {
+        var q = e.qc;
+        qcHtml = '<div class="qc">' +
+          '<div class="row"><span>Netteté</span><span>' + q.sharpness.toFixed(1) + ' <small>(min ' + QC.sharpMin + ')</small></span></div>' +
+          '<div class="row"><span>Luminosité</span><span>' + Math.round(q.brightness) + ' <small>(' + QC.brightMin + '–' + QC.brightMax + ')</small></span></div>' +
+          '<div>' + (q.ok ? '<span class="pill ok">Photo exploitable</span>' : '<span class="pill warn">À reprendre : ' + esc(q.reasons.join(', ').toLowerCase()) + '</span>') + '</div></div>';
+      } else if (e) {
+        qcHtml = '<div class="qc"><span class="pill mute">Analyse en cours…</span></div>';
+      }
+      card.innerHTML =
+        '<header><h3>' + E.name + '</h3><span class="code">' + E.key + '</span></header>' +
+        '<div class="fundus">' + (e ? '<img alt="Photo du fond d’œil, ' + E.name.toLowerCase() + '" src="' + e.src + '">' : 'Aucune photo') + '</div>' +
+        qcHtml +
+        '<div class="demo-btns">' +
+          '<span class="btn small file-btn">Importer une photo<input type="file" accept="image/*" id="file-' + E.key + '" aria-label="Importer une photo, ' + E.name.toLowerCase() + '"></span>' +
+          '<button type="button" class="btn small" data-demo="saine" data-eye="' + E.key + '">Démo : saine</button>' +
+          '<button type="button" class="btn small" data-demo="lesions" data-eye="' + E.key + '">Démo : lésions</button>' +
+          '<button type="button" class="btn small" data-demo="floue" data-eye="' + E.key + '">Démo : floue</button>' +
+        '</div>';
+      host.appendChild(card);
+    });
+    EYES.forEach(function (E) {
+      $('file-' + E.key).addEventListener('change', function (ev) {
+        var f = ev.target.files && ev.target.files[0]; if (!f) return;
+        var r = new FileReader();
+        r.onload = function () { setEye(E.key, { source: 'import', src: r.result, qc: null }); };
+        r.onerror = function () { toast('Impossible de lire ce fichier. Essayez une image JPG ou PNG.'); };
+        r.readAsDataURL(f);
+      });
+    });
+    updateSendState();
+  }
+  function setEye(key, e) {
+    state.eyes[key] = e; renderEyes();
+    loadImage(e.src).then(function (im) { e.qc = analyse(im); if (state.eyes[key] === e) renderEyes(); })
+      .catch(function () { e.qc = { ok: false, brightness: 0, sharpness: 0, fieldFrac: 0, reasons: ['Image illisible'] }; renderEyes(); });
+  }
+  $('eyes').addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-demo]'); if (!b) return;
+    var key = b.getAttribute('data-eye'), side = key === 'OD' ? 1 : -1;
+    setEye(key, { source: b.getAttribute('data-demo'), src: makeFundus(b.getAttribute('data-demo'), side, Math.floor(Math.random() * 1e6)), qc: null });
+  });
+
+  function readPatient() {
+    return { initiales: $('f-initiales').value.trim(), age: parseInt($('f-age').value, 10), duree: parseInt($('f-duree').value, 10), type: $('f-type').value, tel: $('f-tel').value.trim() };
+  }
+  function problems() {
+    var p = readPatient(), out = [];
+    if (!p.initiales) out.push('ajoutez les initiales du patient');
+    if (!(p.age >= 10 && p.age <= 110)) out.push('indiquez un âge valide');
+    if (!(p.duree >= 0)) out.push('indiquez depuis combien d’années le patient est diabétique');
+    if (!$('f-consent').checked) out.push('cochez le consentement du patient');
+    EYES.forEach(function (E) {
+      var e = state.eyes[E.key];
+      if (!e) out.push('ajoutez la photo de l’' + E.name.toLowerCase().replace('œil ', 'œil '));
+      else if (!e.qc) out.push('attendez l’analyse de l’' + E.name.toLowerCase());
+      else if (!e.qc.ok) out.push('reprenez la photo de l’' + E.name.toLowerCase() + ' (' + e.qc.reasons.join(', ').toLowerCase() + ')');
+    });
+    return out;
+  }
+  function updateSendState() {
+    var pb = problems();
+    $('send').disabled = pb.length > 0;
+    $('send-hint').textContent = pb.length ? 'Pour envoyer : ' + pb[0] + '.' : 'Prêt à envoyer.';
+    $('send-warning').hidden = true;
+  }
+  ['f-initiales', 'f-age', 'f-duree', 'f-type', 'f-tel', 'f-consent'].forEach(function (id) {
+    $(id).addEventListener('input', updateSendState); $(id).addEventListener('change', updateSendState);
+  });
+  $('form').addEventListener('submit', function (ev) { ev.preventDefault(); });
+
+  $('send').addEventListener('click', function () {
+    var pb = problems();
+    if (pb.length) { $('send-warning').textContent = 'Envoi impossible : ' + pb.join(' ; ') + '.'; $('send-warning').hidden = false; return; }
+    var c = newCase(readPatient(), { OD: state.eyes.OD, OG: state.eyes.OG }, false);
+    state.cases.push(c); state.selected = c.id;
+    state.eyes = { OD: null, OG: null }; $('f-consent').checked = false;
+    renderEyes(); renderTriage(c); renderAll();
+    toast('Examen ' + c.id + ' envoyé');
+  });
+
+  function renderTriage(c) {
+    var t = TRIAGE[c.triage], el = $('triage');
+    var perEye = EYES.map(function (E) {
+      var a = aiFor(c.eyes[E.key]);
+      var lab = a === 'suspect' ? '<span class="pill crit">Suspect</span>' : a === 'normal' ? '<span class="pill ok">Pas de signe</span>' : '<span class="pill info">Sans avis</span>';
+      return '<div class="row" style="display:flex;justify-content:space-between;gap:8px"><span>' + E.name + '</span>' + lab + '</div>';
+    }).join('');
+    el.innerHTML =
+      '<div class="triage-head"><h3>Tri par l’IA · ' + c.id + '</h3><span class="sim">Simulation</span></div>' +
+      '<div><span class="pill ' + t.cls + '">' + t.label + '</span></div>' +
+      '<p style="margin:0">' + t.text + '</p>' +
+      '<div class="qc">' + perEye + '</div>' +
+      '<p style="margin:0;font-size:13px;color:var(--ink-soft)">Dans ce prototype, l’avis dépend de l’image de démonstration choisie. Il sera remplacé par un vrai modèle d’IA.</p>' +
+      '<div class="actions"><button type="button" class="btn" id="go-ophtalmo">Voir chez l’ophtalmologue →</button></div>';
+    el.hidden = false;
+    $('go-ophtalmo').addEventListener('click', function () { state.selected = c.id; show('ophtalmo'); });
+  }
+
+  /* ---------- Vue ophtalmologue ---------- */
+  var ORDER = { suspect: 0, a_lire: 1, normal: 2 };
+  function sortedQueue() {
+    return state.cases.slice().sort(function (x, y) {
+      if (!!x.decision !== !!y.decision) return x.decision ? 1 : -1;
+      if (ORDER[x.triage] !== ORDER[y.triage]) return ORDER[x.triage] - ORDER[y.triage];
+      return x.id < y.id ? 1 : -1;
+    });
+  }
+  function renderQueue() {
+    var q = $('queue'); q.innerHTML = '';
+    sortedQueue().forEach(function (c) {
+      var t = TRIAGE[c.triage], b = document.createElement('button');
+      b.type = 'button'; b.className = 'qitem' + (c.decision ? ' done' : ''); b.setAttribute('data-sev', t.sev); b.setAttribute('data-id', c.id);
+      b.setAttribute('aria-current', state.selected === c.id ? 'true' : 'false');
+      b.innerHTML = '<span><span class="qid">' + c.id + '</span>' + (c.example ? '<span class="ex">exemple</span>' : '') + '</span>' +
+        (c.decision ? '<span class="pill ' + DECISION[c.decision].cls + '">Lu</span>' : '<span class="pill ' + t.cls + '">' + t.label + '</span>') +
+        '<span class="qmeta">' + esc(c.initiales) + ' · ' + c.age + ' ans · diabète de type ' + c.type + ' depuis ' + c.duree + ' ans</span>';
+      q.appendChild(b);
+    });
+  }
+  $('queue').addEventListener('click', function (ev) {
+    var b = ev.target.closest('.qitem'); if (!b) return;
+    state.selected = b.getAttribute('data-id'); renderQueue(); renderDetail();
+  });
+  function renderDetail() {
+    var el = $('detail'), c = state.cases.filter(function (x) { return x.id === state.selected; })[0];
+    if (!c) { el.innerHTML = '<p class="empty">Choisissez un examen dans la liste.</p>'; return; }
+    var t = TRIAGE[c.triage];
+    var eyes = EYES.map(function (E) {
+      var a = aiFor(c.eyes[E.key]);
+      var lab = a === 'suspect' ? '<span class="pill crit">IA : suspect</span>' : a === 'normal' ? '<span class="pill ok">IA : pas de signe</span>' : '<span class="pill info">IA : sans avis</span>';
+      return '<div class="eyecard"><header><h3>' + E.name + '</h3>' + lab + '</header><div class="fundus"><img alt="Fond d’œil, ' + E.name.toLowerCase() + ', examen ' + c.id + '" src="' + c.eyes[E.key].src + '"></div></div>';
+    }).join('');
+    var decided = c.decision ?
+      '<div class="msg ' + (c.decision === 'normal' ? 'ok' : 'warn') + '"><b>Décision :</b> ' + DECISION[c.decision].label + (c.note ? '<br>Note : ' + esc(c.note) : '') + '<br><span style="font-size:13px">Le message au patient est prêt dans l’onglet Patient.</span></div>' :
+      '<div class="field"><label for="note">Note pour le dossier (facultatif)</label><textarea id="note" placeholder="Ex. : microanévrismes au pôle postérieur"></textarea></div>' +
+      '<div class="decide">' +
+        '<button type="button" class="btn" data-d="rdv">Rétinopathie<small>Rendez-vous prioritaire sous 7 jours</small></button>' +
+        '<button type="button" class="btn" data-d="normal">Pas de rétinopathie<small>Contrôle dans 12 mois</small></button>' +
+        '<button type="button" class="btn" data-d="refaire">Photo à refaire<small>Le patient repasse en pharmacie</small></button>' +
+      '</div>';
+    el.innerHTML =
+      '<div class="triage-head"><h3>Examen ' + c.id + (c.example ? '<span class="ex">exemple</span>' : '') + '</h3><span class="pill ' + t.cls + '">' + t.label + '</span></div>' +
+      '<dl class="facts"><dt>Patient</dt><dd>' + esc(c.initiales) + ', ' + c.age + ' ans</dd><dt>Diabète</dt><dd>Type ' + c.type + ', depuis ' + c.duree + ' ans</dd><dt>Examen du</dt><dd>' + fmtDate(c.created) + '</dd><dt>Lieu</dt><dd>Pharmacie de démonstration, Casablanca</dd></dl>' +
+      '<div class="eyes">' + eyes + '</div>' + decided;
+    el.querySelectorAll('[data-d]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        decide(c, b.getAttribute('data-d'), ($('note') || {}).value);
+        renderAll(); toast('Décision enregistrée pour ' + c.id);
+      });
+    });
+  }
+
+  /* ---------- Vue patient ---------- */
+  function renderSms() {
+    var el = $('sms'), list = state.cases.filter(function (c) { return c.decision; }).sort(function (a, b) { return b.decidedAt - a.decidedAt || (a.id < b.id ? 1 : -1); });
+    if (!list.length) { el.innerHTML = '<p class="empty">Aucun résultat pour l’instant. Les messages apparaissent quand l’ophtalmologue a lu un examen.</p>'; return; }
+    el.innerHTML = list.map(function (c) {
+      var seen = c.decision === 'rdv' ? '<label class="check seen" for="seen-' + c.id + '"><input type="checkbox" id="seen-' + c.id + '" data-seen="' + c.id + '"' + (c.seen ? ' checked' : '') + '> <span>Le patient a vu l’ophtalmologue</span></label>' : '';
+      return '<div class="sms"><div class="from">Basira → ' + esc(c.tel) + '<span>' + c.id + '</span></div>' + esc(smsText(c)) + seen + '</div>';
+    }).join('');
+    el.querySelectorAll('[data-seen]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var c = state.cases.filter(function (x) { return x.id === cb.getAttribute('data-seen'); })[0]; c.seen = cb.checked; renderSuivi();
+      });
+    });
+  }
+
+  /* ---------- Vue suivi ---------- */
+  function renderSuivi() {
+    var n = state.cases.length, sus = state.cases.filter(function (c) { return c.triage === 'suspect'; }).length;
+    var lus = state.cases.filter(function (c) { return c.decision; }).length;
+    var risk = state.cases.filter(function (c) { return c.decision === 'rdv'; }), seen = risk.filter(function (c) { return c.seen; }).length;
+    var pct = risk.length ? Math.round(seen / risk.length * 100) : 0;
+    $('tiles').innerHTML =
+      '<div class="tile"><div class="v">' + n + '</div><div class="k">patients dépistés</div></div>' +
+      '<div class="tile"><div class="v">' + sus + '</div><div class="k">jugés suspects par l’IA</div></div>' +
+      '<div class="tile"><div class="v">' + lus + '</div><div class="k">examens lus par l’ophtalmologue</div></div>' +
+      '<div class="tile"><div class="v">' + seen + '/' + risk.length + '</div><div class="k">patients à risque vus en consultation</div></div>';
+    $('meter-fill').style.width = pct + '%';
+    $('meter-text').textContent = risk.length ? pct + ' % (' + seen + ' sur ' + risk.length + ', données de démonstration)' : 'Aucun patient à risque pour l’instant';
+  }
+
+  function renderCounts() {
+    $('count-ophtalmo').textContent = state.cases.filter(function (c) { return !c.decision; }).length;
+    $('count-patient').textContent = state.cases.filter(function (c) { return c.decision; }).length;
+  }
+  function renderAll() { renderQueue(); renderDetail(); renderSms(); renderSuivi(); renderCounts(); }
+
+  /* ---------- Onglets ---------- */
+  var VIEWS = ['pharmacie', 'ophtalmo', 'patient', 'suivi'];
+  function show(v) {
+    VIEWS.forEach(function (x) {
+      $('view-' + x).hidden = x !== v;
+      $('tab-' + x).setAttribute('aria-selected', x === v ? 'true' : 'false');
+    });
+    if (v === 'ophtalmo') { renderQueue(); renderDetail(); }
+    if (location.hash !== '#' + v) { try { history.replaceState(null, '', '#' + v); } catch (e) {} }
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.tab').forEach(function (t) { t.addEventListener('click', function () { show(t.getAttribute('data-view')); }); });
+  window.addEventListener('hashchange', function () { var h = location.hash.slice(1); if (VIEWS.indexOf(h) >= 0) show(h); });
+
+  $('reset').addEventListener('click', function () { $('reset-confirm').hidden = false; });
+  $('reset-no').addEventListener('click', function () { $('reset-confirm').hidden = true; });
+  $('reset-yes').addEventListener('click', function () { $('reset-confirm').hidden = true; seed(); renderEyes(); $('triage').hidden = true; renderAll(); toast('Démo remise à zéro'); });
+
+  /* ---------- Démarrage ---------- */
+  seed();
+  renderEyes();
+  setEye('OD', { source: 'saine', src: makeFundus('saine', 1, 41), qc: null });
+  setEye('OG', { source: 'lesions', src: makeFundus('lesions', -1, 42), qc: null });
+  renderAll();
+  var h = location.hash.slice(1); show(VIEWS.indexOf(h) >= 0 ? h : 'pharmacie');
+})();
+</script>

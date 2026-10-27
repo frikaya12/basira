@@ -1,0 +1,14 @@
+[project]
+name = "basira"
+version = "0.1.0"
+description = "Dépistage de la rétinopathie diabétique en pharmacie : contrôle qualité des photos, tri par IA, lecture à distance par un ophtalmologue."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+pythonpath = [".", "tests"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 130

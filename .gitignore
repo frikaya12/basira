@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Données et modèles : jamais de données de patients dans le dépôt
+data/
+models/
+*.pt
+*.db
+
+# Éditeurs et système
+.vscode/
+.idea/
+.DS_Store
